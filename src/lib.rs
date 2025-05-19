@@ -1,0 +1,52 @@
+use std::fs;
+
+pub fn read_json(path_to_json: &str) -> anyhow::Result<String> {
+    let json_string = fs::read_to_string(path_to_json)?;
+    Ok(json_string)
+}
+
+pub mod channel {
+    use serde::{Deserialize, Serialize};
+
+    #[derive(Debug, Deserialize, Serialize)]
+    pub struct PipePipe {
+        app_version: String,
+        app_version_int: i32,
+        channels: Vec<Channel>,
+    }
+
+    #[derive(Debug, Deserialize, Serialize)]
+    pub struct Channel {
+        service_id: u16,
+        url: String,
+        name: String,
+    }
+
+    impl Channel {
+        // For debugging
+        pub fn new(service_id: u16, url: String, name: String) -> Self {
+            Channel {
+                service_id,
+                url,
+                name,
+            }
+        }
+        pub fn parse_id(&self) -> anyhow::Result<String> {
+            const CHANNEL_PREFIX: &str = "/channel/";
+
+            let start_id;
+
+            if let Some(i) = self.url.find(CHANNEL_PREFIX) {
+                start_id = i + CHANNEL_PREFIX.len();
+            } else {
+                anyhow::bail!("Could not parse channedl id");
+            }
+
+            if let Some(i) = self.url[start_id..].find('/') {
+                Ok(self.url[start_id..start_id + i].into())
+            } else {
+                Ok(self.url[start_id..].into())
+            }
+        }
+    }
+}
