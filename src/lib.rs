@@ -1,5 +1,7 @@
 use std::fs;
 
+const DATA_DIR: &str = "data/";
+
 pub fn read_json(path_to_json: &str) -> anyhow::Result<String> {
     let json_string = fs::read_to_string(path_to_json)?;
     Ok(json_string)
@@ -8,6 +10,8 @@ pub fn read_json(path_to_json: &str) -> anyhow::Result<String> {
 pub mod channel {
     use reqwest;
     use serde::{Deserialize, Serialize};
+
+    use crate::DATA_DIR;
 
     #[derive(Debug, Deserialize, Serialize)]
     pub struct PipePipe {
@@ -23,6 +27,10 @@ pub mod channel {
         name: String,
 
         #[serde(skip)]
+        feed_path: String,
+        #[serde(skip)]
+        channel_id: String,
+        #[serde(skip)]
         pub feed: Option<String>,
     }
 
@@ -33,8 +41,14 @@ pub mod channel {
                 service_id,
                 url,
                 name,
+                feed_path: String::new(),
+                channel_id: String::new(),
                 feed: None,
             }
+        }
+
+        fn set_feed_path(&mut self) {
+            self.feed_path = DATA_DIR.to_owned() + &self.channel_id;
         }
 
         pub fn parse_id(&self) -> anyhow::Result<String> {
@@ -53,6 +67,11 @@ pub mod channel {
             } else {
                 Ok(self.url[start_id..].into())
             }
+        }
+
+        pub fn set_id(&mut self) -> anyhow::Result<()> {
+            self.channel_id = self.parse_id()?;
+            Ok(())
         }
 
         pub fn pull_feed(&self) -> anyhow::Result<String> {
