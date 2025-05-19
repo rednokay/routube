@@ -10,9 +10,7 @@ pub mod channel {
 
     #[derive(Debug, Deserialize, Serialize)]
     pub struct PipePipe {
-        app_version: String,
-        app_version_int: i32,
-        channels: Vec<Channel>,
+        app_version: String, app_version_int: i32, channels: Vec<Channel>,
     }
 
     #[derive(Debug, Deserialize, Serialize)]
@@ -48,5 +46,32 @@ pub mod channel {
                 Ok(self.url[start_id..].into())
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::channel;
+
+    #[test]
+    fn without_slash() {
+        let name = "Cool Youtuber";
+        let url = "https://www.youtube.com/channel/U8ecCwsd92";
+        let c = channel::Channel::new(0, url.into(), name.into());
+        assert_eq!(
+            "U8ecCwsd92".to_owned(),
+            c.parse_id().expect("Shout not error here")
+        );
+    }
+
+    #[test]
+    fn with_slash() {
+        let name = "Cool Youtuber";
+        let url = "https://www.youtube.com/channel/U8ecCwsd92/";
+        let c = channel::Channel::new(0, url.into(), name.into());
+        assert_eq!(
+            "U8ecCwsd92".to_owned(),
+            c.parse_id().expect("Shout not error here")
+        );
     }
 }
