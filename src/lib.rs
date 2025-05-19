@@ -6,11 +6,14 @@ pub fn read_json(path_to_json: &str) -> anyhow::Result<String> {
 }
 
 pub mod channel {
+    use reqwest;
     use serde::{Deserialize, Serialize};
 
     #[derive(Debug, Deserialize, Serialize)]
     pub struct PipePipe {
-        app_version: String, app_version_int: i32, channels: Vec<Channel>,
+        app_version: String,
+        app_version_int: i32,
+        channels: Vec<Channel>,
     }
 
     #[derive(Debug, Deserialize, Serialize)]
@@ -18,6 +21,9 @@ pub mod channel {
         service_id: u16,
         url: String,
         name: String,
+
+        #[serde(skip)]
+        pub feed: Option<String>,
     }
 
     impl Channel {
@@ -27,8 +33,10 @@ pub mod channel {
                 service_id,
                 url,
                 name,
+                feed: None,
             }
         }
+
         pub fn parse_id(&self) -> anyhow::Result<String> {
             const CHANNEL_PREFIX: &str = "/channel/";
 
@@ -45,6 +53,27 @@ pub mod channel {
             } else {
                 Ok(self.url[start_id..].into())
             }
+        }
+
+        pub fn pull_feed(&self) -> anyhow::Result<String> {
+            let feed_url = format!(
+                "https://www.youtube.com/feeds/videos.xml?channel_id={}",
+                self.parse_id()?
+            );
+
+            let response = reqwest::blocking::get(&feed_url)?.text()?;
+
+            Ok(response)
+        }
+
+        pub fn set_feed(&mut self) -> anyhow::Result<()> {
+            let feed = self.pull_feed()?;
+            self.feed = Some(feed);
+            Ok(())
+        }
+
+        pub fn write_feed_to_file() {
+            todo!();
         }
     }
 }
@@ -73,5 +102,19 @@ mod tests {
             "U8ecCwsd92".to_owned(),
             c.parse_id().expect("Shout not error here")
         );
+    }
+
+    #[test]
+    fn set_feed() {
+        // Torsten Heinrich
+        let url = "https://www.youtube.com/channel/UC9kZ6FlOQfusBV8LS2x2fAA/";
+        let name = "Torsten Heinrich";
+        let mut c = channel::Channel::new(0, url.into(), name.into());
+
+        assert_eq!(None, c.feed);
+
+        let _ = c.set_feed();
+
+        assert_ne!(None, c.feed);
     }
 }
