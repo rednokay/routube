@@ -107,6 +107,16 @@ pub mod channel {
                 anyhow::bail!("Feed not set, cannot write to file")
             }
         }
+
+        pub fn load_feed(&self) -> anyhow::Result<String> {
+            Ok(fs::read_to_string(&self.feed_path)?)
+        }
+
+        pub fn diff_feeds(&self, new_feed: String) -> anyhow::Result<Vec<text_diff::Difference>> {
+            let feed = self.load_feed()?;
+            let (_, changes) = text_diff::diff(&feed, &new_feed, " ");
+            Ok(changes)
+        }
     }
 }
 
@@ -173,7 +183,10 @@ mod tests {
         let e = c.set_feed_path();
 
         assert!(e.is_ok());
-        assert_eq!(c.feed_path, DATA_DIR.to_owned() + "UC9kZ6FlOQfusBV8LS2x2fAA");
+        assert_eq!(
+            c.feed_path,
+            DATA_DIR.to_owned() + "UC9kZ6FlOQfusBV8LS2x2fAA"
+        );
     }
 
     #[test]
